@@ -1,0 +1,13 @@
+node_modules/
+renders/
+out/
+# Captures are generated from the live site by `npm run capture` and are
+# reproducible; they are large and must never be committed.
+public/captures/
+public/photos/
+capture/.cache/
+*.log
+# Synthesised from the cue sheet by `npm run score` (deterministic).
+public/audio/*.wav
+capture/dev/
+capture/verify-report.md

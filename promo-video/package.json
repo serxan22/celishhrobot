@@ -1,0 +1,42 @@
+{
+  "name": "ada-law-society-promo-film",
+  "version": "1.0.0",
+  "private": true,
+  "description": "In Session — a motion-design launch film for the ADA Law Society website, built with Remotion from captures of the live site.",
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "capture": "tsx capture/capture.ts",
+    "capture:morph": "tsx capture/capture.ts --only=morph",
+    "verify": "tsx capture/verify.ts",
+    "enhance": "tsx capture/enhance.ts",
+    "score": "python3 audio/score.py",
+    "cues": "tsx src/lib/export-cues.ts",
+    "render:preview": "remotion render src/index.ts Film-1080 renders/in-session-1080p60.mp4 --codec=h264 --crf=16 --concurrency=4",
+    "render:master": "remotion render src/index.ts Film-4K renders/in-session-2160p60-master.mp4 --codec=h264 --crf=12 --x264-preset=slow --concurrency=3",
+    "render:stills": "tsx scripts/stills.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.529",
+    "@remotion/cli": "4.0.529",
+    "@remotion/fonts": "^4.0.529",
+    "@remotion/google-fonts": "4.0.529",
+    "@remotion/media": "4.0.529",
+    "@remotion/motion-blur": "^4.0.529",
+    "@remotion/paths": "4.0.529",
+    "@remotion/renderer": "4.0.529",
+    "@remotion/transitions": "^4.0.529",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.529"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "playwright": "1.56.1",
+    "sharp": "^0.34.4",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
