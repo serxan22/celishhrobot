@@ -11,3 +11,4 @@ capture/.cache/
 public/audio/*.wav
 capture/dev/
 capture/verify-report.md
+renders-*.mp4
