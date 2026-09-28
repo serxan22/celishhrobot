@@ -427,13 +427,52 @@ def write(name, x):
     print(f"{name}: {len(x) / SR:.2f}s, rms {rms:.1f} dBFS, peak {20 * np.log10(np.max(np.abs(x)) + 1e-9):.1f} dBFS")
 
 
+def voice_presence():
+    """0..1 while the narrator speaks (from public/audio/vo.wav), smoothed
+    with a quick attack and a slow release, so music ducks under the voice."""
+    path = os.path.join(ROOT, "public", "audio", "vo.wav")
+    if not os.path.exists(path):
+        return None, None
+    sr, vo = wavfile.read(path)
+    vo = vo.astype(np.float64) / 32767
+    if vo.ndim == 2:
+        vo_m = vo.mean(axis=1)
+    else:
+        vo_m = vo
+        vo = np.stack([vo, vo], axis=1)
+    if len(vo) < N:
+        vo = np.vstack([vo, np.zeros((N - len(vo), 2))])
+        vo_m = np.concatenate([vo_m, np.zeros(N - len(vo_m))])
+    vo, vo_m = vo[:N], vo_m[:N]
+    level = np.abs(vo_m)
+    hop = int(0.01 * SR)
+    frames = level[: len(level) // hop * hop].reshape(-1, hop).max(axis=1)
+    on = (frames > 0.03).astype(float)
+    att, rel = 0.04, 0.45
+    env = np.zeros_like(on)
+    a_up, a_dn = 1 - np.exp(-0.01 / att), 1 - np.exp(-0.01 / rel)
+    for i in range(1, len(on)):
+        k = a_up if on[i] > env[i - 1] else a_dn
+        env[i] = env[i - 1] + (on[i] - env[i - 1]) * k
+    presence = np.interp(np.arange(N), np.arange(len(env)) * hop, env)
+    return presence, vo
+
+
 if __name__ == "__main__":
     os.makedirs(os.path.join(ROOT, "public", "audio"), exist_ok=True)
     score = build_score()
     sfx = build_sfx()
-    score_m = fade(master(score, 0.6))
-    sfx_m = fade(master(sfx, 0.85), 0.0, 0.8)
+    presence, vo = voice_presence()
+    if presence is not None:
+        # the voice leads: the score sits back and dips under every line
+        score = score * (10 ** ((-10 * presence) / 20))[:, None]
+        sfx = sfx * (10 ** ((-6 * presence) / 20))[:, None]
+    score_m = fade(master(score, 0.42 if presence is not None else 0.6))
+    sfx_m = fade(master(sfx, 0.78), 0.0, 0.8)
     write("score.wav", score_m)
     write("sfx.wav", sfx_m)
-    mix = master(score_m * 0.72 + sfx_m * 0.8, 0.89)
+    parts = score_m * 0.72 + sfx_m * 0.8
+    if vo is not None:
+        parts = parts + vo * 0.95
+    mix = master(parts, 0.89)
     write("mix.wav", mix)

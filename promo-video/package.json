@@ -10,6 +10,7 @@
     "capture:morph": "tsx capture/capture.ts --only=morph",
     "verify": "tsx capture/verify.ts",
     "enhance": "tsx capture/enhance.ts",
+    "voice": "python3 audio/voice.py",
     "score": "python3 audio/score.py",
     "cues": "tsx src/lib/export-cues.ts",
     "render:preview": "remotion render src/index.ts Film renders/in-session-1080p60.mp4 --codec=h264 --crf=16 --concurrency=4",

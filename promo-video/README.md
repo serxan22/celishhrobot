@@ -61,8 +61,12 @@ npm run enhance            # full-frame photographs resampled to 4K, small tier
 # 2. Verify the capture against the live site — gate every render on it
 npm run verify -- --site=https://www.adalawsociety.com
 
-# 3. Sound: cue sheet from the film's clock, then the score and sound design
-npm run cues && npm run score      # needs python3 with numpy + scipy
+# 3. Sound: cue sheet from the film's clock, the narrator, then the score and
+#    sound design (ducked under the narrator)
+npm run cues
+npm run voice                      # pip install kokoro-onnx soundfile; model files from
+                                   # github.com/thewh1teagle/kokoro-onnx/releases (model-files-v1.0)
+npm run score                      # needs python3 with numpy + scipy
 
 # 4. Render
 npm run studio                     # preview in Remotion Studio
@@ -111,6 +115,13 @@ full density; captures are taken at 2.4 device px per CSS px, so a full-frame
 page is 1:1 in the master.
 
 ### Sound (`audio/`)
+
+`voice.py` is the narrator: a male voice (Kokoro `am_michael`, an open-weight
+neural TTS, run locally) introducing the site in fifteen lines timed to the
+picture, in the site's own words wherever it has them. "ADA" is pronounced as
+the word *Ada* (as the university says it), not as letters. `audio/vo.json`
+lists every line with its start and end, so a voice artist can re-record it
+line for line and replace `public/audio/vo.wav`.
 
 `score.py` synthesises an original score (a low drone; slow chords in D minor
 warming to F and B-flat for the people and resolving to an open D; a soft felt
