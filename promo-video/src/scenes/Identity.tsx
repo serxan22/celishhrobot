@@ -62,8 +62,9 @@ export function Identity() {
             fontFamily: font.sans,
             fontWeight: 500,
             fontSize: 30,
-            letterSpacing: '0.34em',
-            textIndent: '0.34em',
+            // tracking closes as the name rises — a title set, not typed
+            letterSpacing: `${0.34 + 0.16 * (1 - nameIn)}em`,
+            textIndent: `${0.34 + 0.16 * (1 - nameIn)}em`,
             textTransform: 'uppercase',
             color: color.paper,
             transform: `translateY(${(1 - nameIn) * 58 - out * 18}px)`,

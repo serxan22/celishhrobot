@@ -2,6 +2,7 @@ import { useCurrentFrame } from 'remotion';
 import { Fill } from '../components/primitives';
 import { Photo, Plate, SiteView, Unmask } from '../components/media';
 import { CaptionBlock, Scrim } from '../components/Editorial';
+import { DirectionalBlur } from '../components/MotionBlur';
 import { toDesign } from '../components/SiteText';
 import { ease, lerp, progress } from '../lib/easing';
 import { content, one, still, type Rect } from '../lib/manifest';
@@ -52,6 +53,7 @@ export function Newsroom() {
 
   const tl = progress(frame, TIMELINE, TL_END, ease.travel);
   const pos = tl * (n - 1); // which entry sits on the reading line
+  const speed = (pos - progress(frame - 1, TIMELINE, TL_END, ease.travel) * (n - 1)) * SPACING;
   const tlIn = progress(frame, TIMELINE - 6, TIMELINE + 30, ease.scenic);
   const expand = progress(frame, SELECT, EXPAND_END, ease.scenic);
   const settle = progress(frame, SETTLE, SETTLE_END, ease.scenic);
@@ -82,9 +84,12 @@ export function Newsroom() {
       {/* The record. */}
       {frame >= TIMELINE - 6 && frame < SELECT + 20 ? (
         <Fill style={{ opacity: tlIn * (1 - progress(frame, SELECT, SELECT + 16, ease.linear)) }}>
-          <Years list={list} pos={pos} />
+          <DirectionalBlur id="record-years" vy={speed * 0.55}>
+            <Years list={list} pos={pos} />
+          </DirectionalBlur>
           <div style={{ position: 'absolute', left: AXIS_X, top: 0, width: 1, height: 1080, background: color.ruleInk }} />
           <div style={{ position: 'absolute', left: AXIS_X - 18, top: READ_Y, width: 36, height: 1.5, background: color.wine }} />
+          <DirectionalBlur id="record-entries" vy={speed}>
           {list.map((e, i) => {
             const y = READ_Y + (i - pos) * SPACING;
             if (y < -260 || y > 1340) return null;
@@ -118,6 +123,7 @@ export function Newsroom() {
               </div>
             );
           })}
+          </DirectionalBlur>
           <DatePin list={list} pos={pos} frame={frame} />
         </Fill>
       ) : null}

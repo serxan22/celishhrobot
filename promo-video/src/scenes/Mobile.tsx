@@ -1,6 +1,7 @@
 import { Img, useCurrentFrame } from 'remotion';
 import { Fill } from '../components/primitives';
 import { Footage } from '../components/media';
+import { DirectionalBlur } from '../components/MotionBlur';
 import { ease, progress } from '../lib/easing';
 import { frameSrc, morph } from '../lib/manifest';
 import { SCENES } from '../lib/timing';
@@ -25,6 +26,7 @@ export function Mobile() {
   const w = size.width * S;
   const h = size.height * S;
   const exit = progress(frame, K.exit, SCENES.mobile.duration, ease.exit);
+  const exitSpeed = (exit - progress(frame - 1, K.exit, SCENES.mobile.duration, ease.exit)) * 1250;
   const push = 1 + 0.05 * progress(frame, K.scrollStart, K.exit, ease.scenic);
   const x = (1920 - w) / 2;
   const y = (1080 - h) / 2 - exit * 1250;
@@ -35,7 +37,8 @@ export function Mobile() {
       {/* What waits behind the phone: the first beat of the finale. */}
       {frame >= K.exit - 2 ? (
         <Fill style={{ opacity: progress(frame, K.exit - 2, K.exit + 12, ease.linear) }}>
-          <MontageShot index={0} local={frame - K.exit} />
+          {/* on the finale's own clock, so the cut between scenes is invisible */}
+          <MontageShot index={0} local={frame - SCENES.mobile.duration} />
         </Fill>
       ) : null}
 
@@ -52,13 +55,15 @@ export function Mobile() {
           boxShadow: `0 0 0 1px rgba(195, 213, 222, ${0.32 * edge}), 0 50px 140px rgba(0,0,0,${0.5 * edge})`,
         }}
       >
-        {inMorph ? (
-          <Img src={frameSrc('morph', i)} style={{ position: 'absolute', left: 0, top: 0, width: w, height: h }} />
-        ) : (
-          <div style={{ position: 'absolute', left: 0, top: 0, width: 390, height: 844, transform: `scale(${S})`, transformOrigin: '0 0' }}>
-            <Footage id="mobile-scroll" frame={frame - K.scrollStart} />
-          </div>
-        )}
+        <DirectionalBlur id="phone" vy={exitSpeed} strength={0.3} max={14}>
+          {inMorph ? (
+            <Img src={frameSrc('morph', i)} style={{ position: 'absolute', left: 0, top: 0, width: w, height: h }} />
+          ) : (
+            <div style={{ position: 'absolute', left: 0, top: 0, width: 390, height: 844, transform: `scale(${S})`, transformOrigin: '0 0' }}>
+              <Footage id="mobile-scroll" frame={frame - K.scrollStart} />
+            </div>
+          )}
+        </DirectionalBlur>
       </div>
     </Fill>
   );

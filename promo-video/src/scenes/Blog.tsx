@@ -53,6 +53,7 @@ export function Blog() {
   const tEnl = progress(frame, ENL, ENL_END, ease.scenic);
   const tLand = progress(frame, LAND, LAND_END, ease.scenic);
   const tMorph = progress(frame, MORPH, MORPH_END, ease.scenic);
+  const prev = (a: number, b: number) => progress(frame - 1, a, b, ease.scenic);
 
   // Which layouts the headline is travelling between.
   // Surfaces wipe down behind the headline; each word takes the colour of
@@ -63,11 +64,11 @@ export function Blog() {
   const PAPER: RGB = [251, 249, 245];
   const WINE: RGB = [111, 39, 57];
   let morph: React.ReactElement | null = null;
-  if (frame >= SEP && frame < LAND) morph = <WordMorph from={A} to={E} t={tEnl} stagger={0.5} reverse />;
+  if (frame >= SEP && frame < LAND) morph = <WordMorph from={A} to={E} t={tEnl} tPrev={prev(ENL, ENL_END)} stagger={0.5} reverse />;
   else if (frame >= LAND && frame < LAND_END)
-    morph = <WordMorph from={E} to={C} t={tLand} stagger={0.4} colorAt={edgeColor(landEdge, INK_TEXT, PAPER)} />;
+    morph = <WordMorph from={E} to={C} t={tLand} tPrev={prev(LAND, LAND_END)} stagger={0.4} colorAt={edgeColor(landEdge, INK_TEXT, PAPER)} />;
   else if (frame >= MORPH && frame < MORPH_END)
-    morph = <WordMorph from={Chover} to={D} t={tMorph} stagger={0.26} dip={0.15} colorAt={edgeColor(morphEdge, PAPER, WINE)} />;
+    morph = <WordMorph from={Chover} to={D} t={tMorph} tPrev={prev(MORPH, MORPH_END)} stagger={0.26} dip={0.15} colorAt={edgeColor(morphEdge, PAPER, WINE)} />;
 
   // Target point of the pointer: where the capture hovered the title.
   const tb = titleC.rect;
@@ -135,6 +136,9 @@ export function Blog() {
 
       {morph}
 
+      {/* Marginalia: two words in the law-report register, beside the reading. */}
+      {frame >= READ + 80 ? <Marginalia frame={frame - READ - 80} /> : null}
+
       {/* The byline, while the headline is held large. */}
       {frame >= ENL + 50 && frame < LAND + 20 ? (
         <>
@@ -200,6 +204,33 @@ function RowSlice({ rect, src, style }: { rect: Rect; src: string; style?: React
   return (
     <div style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.width, height: rect.height, overflow: 'hidden', ...style }}>
       <Img src={src} style={{ position: 'absolute', left: -rect.x, top: -rect.y, width: 1600, height: 900 }} />
+    </div>
+  );
+}
+
+/**
+ * The site calls its small tracked capitals "the law-report register":
+ * marginalia, section numbers, metadata. Two words are set there, in the
+ * article's empty margin, as the reader goes in — a gloss, not a slogan.
+ */
+function Marginalia({ frame }: { frame: number }) {
+  const words = ['Read', 'Question'];
+  const rule = progress(frame, 0, 36, ease.scenic);
+  return (
+    <div style={{ position: 'absolute', left: 150, top: 470 }}>
+      <div style={{ width: 1, height: 120, background: color.wine, transform: `scaleY(${rule})`, transformOrigin: 'top', opacity: 0.9 }} />
+      {words.map((w, i) => {
+        const at = 10 + i * 30;
+        const p = progress(frame, at, at + 26, ease.entrance);
+        const out = i < words.length - 1 ? progress(frame, at + 28, at + 44, ease.exit) : 0;
+        return (
+          <div key={w} style={{ position: 'absolute', left: 26, top: 0, height: 40, width: 400, overflow: 'hidden' }}>
+            <div style={{ ...type.label, fontSize: 18, letterSpacing: '0.3em', color: color.wineDeep, transform: `translateY(${(1 - p) * 30 - out * 30}px)`, opacity: Math.min(1, p * 1.3) * (1 - out) }}>
+              {w}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useCurrentFrame } from 'remotion';
 import { Fill, Label } from '../components/primitives';
 import { Camera, Photo, Plate, SiteView, Unmask } from '../components/media';
 import { ease, hash, lerp, progress } from '../lib/easing';
+import { speedBlur } from '../components/MotionBlur';
 import { content, many, still, type Rect } from '../lib/manifest';
 import { SCENES } from '../lib/timing';
 import { color, font, type } from '../lib/tokens';
@@ -48,25 +49,53 @@ export function Team() {
 
   const scroll = lerp(0, BOARD_SCROLL, progress(frame, SCROLL, SCROLL_END, ease.travel));
   const zoom = 1 + 0.05 * progress(frame, SCROLL, SCROLL_END + 40, ease.scenic);
-  const detach = (i: number) => progress(frame, DETACH + i * 4, DETACH_END + i * 4, ease.scenic);
-  const wall = (i: number) => progress(frame, WALL + i * 1.2, WALL_END + i * 1.2, ease.scenic);
-  const settle = (i: number) => progress(frame, SETTLE + (i % 8) * 2, SETTLE_END + (i % 8) * 2, ease.scenic);
   const dim = progress(frame, DETACH - 4, DETACH + 40, ease.scenic) * (1 - progress(frame, SETTLE + 10, SETTLE_END, ease.scenic));
 
   // Composition B: the term as a masthead — one column per body.
   const wallRects = wallLayout(members);
 
-  // Where a board portrait sits on the travelled page, in design px.
-  const onPage = (r: Rect): Rect => {
-    const x = r.x * 1.2;
-    const y = (r.y - BOARD_SCROLL) * 1.2;
-    // apply the camera's zoom about the frame centre
-    return { x: 960 + (x - 960) * zoom, y: 540 + (y - 540) * zoom, width: r.width * 1.2 * zoom, height: r.height * 1.2 * zoom };
-  };
   // Committee slots at the committees page's top, full frame.
   const inComm = (r: Rect): Rect => ({ x: r.x * 1.2, y: r.y * 1.2, width: r.width * 1.2, height: r.height * 1.2 });
 
   const settled = frame >= SETTLE_END + 16;
+
+  /** Where portrait i is, and how visible, at any frame — so its speed is exact. */
+  const portraitAt = (f: number, i: number): { r: Rect; o: number } => {
+    const detachAt = (k: number) => progress(f, DETACH + k * 4, DETACH_END + k * 4, ease.scenic);
+    const wallAt = (k: number) => progress(f, WALL + k * 1.2, WALL_END + k * 1.2, ease.scenic);
+    const settleAt = (k: number) => progress(f, SETTLE + (k % 8) * 2, SETTLE_END + (k % 8) * 2, ease.scenic);
+    const z = 1 + 0.05 * progress(f, SCROLL, SCROLL_END + 40, ease.scenic);
+    if (i < 6) {
+      const s = boardSlots[i];
+      const from: Rect = {
+        x: 960 + (s.x * 1.2 - 960) * z,
+        y: 540 + ((s.y - BOARD_SCROLL) * 1.2 - 540) * z,
+        width: s.width * 1.2 * z,
+        height: s.height * 1.2 * z,
+      };
+      let r = lerpRect(from, BOARD_POSE[i], detachAt(i));
+      let o = 1;
+      if (f >= WALL) r = lerpRect(BOARD_POSE[i], wallRects.rects[i], wallAt(i));
+      if (f >= SETTLE) {
+        const k = settleAt(i);
+        r = { ...r, y: lerp(r.y, r.y - 1200, k) };
+        o = 1 - k;
+      }
+      return { r, o };
+    }
+    const target = wallRects.rects[i];
+    const k = wallAt(i);
+    const sc = lerp(1.9, 1, k);
+    const cx = target.x + target.width / 2 + (hash(i, 3) - 0.5) * 700 * (1 - k);
+    const cy = target.y + target.height / 2 + (hash(i, 5) - 0.5) * 500 * (1 - k);
+    let r: Rect = { x: cx - (target.width * sc) / 2, y: cy - (target.height * sc) / 2, width: target.width * sc, height: target.height * sc };
+    let o = f < WALL ? 0 : Math.min(1, k * 2.2);
+    if (f >= SETTLE) {
+      r = lerpRect(target, inComm(commSlots[i - 6]), settleAt(i - 6));
+      o = 1;
+    }
+    return { r, o };
+  };
 
   return (
     <Fill style={{ background: color.ink }}>
@@ -114,33 +143,11 @@ export function Team() {
         ? order(members).map((i) => {
             const m = members[i];
             const isBoard = i < 6;
-            const commIndex = i - 6;
-            let r: Rect;
-            let o = 1;
-            if (isBoard) {
-              const from = onPage(boardSlots[i]);
-              const pose = BOARD_POSE[i];
-              r = lerpRect(from, pose, detach(i));
-              if (frame >= WALL) r = lerpRect(pose, wallRects.rects[i], wall(i));
-              if (frame >= SETTLE) {
-                // back up the page, to the Board it belongs to
-                const t = settle(i);
-                r = { ...r, y: lerp(r.y, r.y - 1200, t) };
-                o = 1 - t;
-              }
-            } else {
-              // committee portraits arrive from depth as the masthead forms
-              const target = wallRects.rects[i];
-              const t = wall(i);
-              const s = lerp(1.9, 1, t);
-              const cx = target.x + target.width / 2 + (hash(i, 3) - 0.5) * 700 * (1 - t);
-              const cy = target.y + target.height / 2 + (hash(i, 5) - 0.5) * 500 * (1 - t);
-              r = { x: cx - (target.width * s) / 2, y: cy - (target.height * s) / 2, width: target.width * s, height: target.height * s };
-              o = Math.min(1, t * 2.2);
-              if (frame < WALL) o = 0;
-              if (frame >= SETTLE) r = lerpRect(target, inComm(commSlots[commIndex]), settle(commIndex));
-            }
-            if (o <= 0) return null;
+            const now = portraitAt(frame, i);
+            if (now.o <= 0) return null;
+            const was = portraitAt(frame - 1, i);
+            const speed = Math.hypot(now.r.x + now.r.width / 2 - (was.r.x + was.r.width / 2), now.r.y + now.r.height / 2 - (was.r.y + was.r.height / 2));
+            const r = now.r;
             return (
               <div
                 key={m.name}
@@ -151,7 +158,8 @@ export function Team() {
                   width: r.width,
                   height: r.height,
                   overflow: 'hidden',
-                  opacity: o,
+                  opacity: now.o,
+                  filter: speedBlur(speed, 0.1, 3),
                   boxShadow: isBoard && frame < WALL_END ? '0 30px 70px rgba(0,0,0,0.45)' : undefined,
                 }}
               >

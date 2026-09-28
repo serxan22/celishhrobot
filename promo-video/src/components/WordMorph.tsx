@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import type { Measured, Word } from '../lib/manifest';
 import { clamp01, lerp } from '../lib/easing';
 import { site } from '../lib/tokens';
+import { speedBlur } from './MotionBlur';
 
 /**
  * One headline in several of the site's real layouts — a row on the homepage,
@@ -88,6 +89,7 @@ export function WordMorph({
   dip = 0.3,
   colorAt,
   reverse = false,
+  tPrev,
   style,
   opacity = 1,
 }: {
@@ -103,6 +105,8 @@ export function WordMorph({
   colorAt?: (x: number, y: number, h: number, mixed: RGB) => RGB;
   /** Set the last line first — when words travel down past lines already set. */
   reverse?: boolean;
+  /** The eased progress one frame earlier: gives each word its speed, for blur. */
+  tPrev?: number;
   style?: CSSProperties;
   opacity?: number;
 }) {
@@ -122,10 +126,19 @@ export function WordMorph({
         const d =
           (nLines > 1 ? (order / (nLines - 1)) * stagger * 0.78 : 0) +
           (inLine.length > 1 ? (pos / (inLine.length - 1)) * stagger * 0.22 : 0);
-        const u = clamp01((t - d) / (1 - stagger));
-        const s = u * u * (3 - 2 * u);
+        const at = (tt: number) => {
+          const uu = clamp01((tt - d) / (1 - stagger));
+          return uu * uu * (3 - 2 * uu);
+        };
+        const s = at(t);
         const x = lerp(from.origin[0] + a.x * from.scale, to.origin[0] + b.x * to.scale, s);
         const y = lerp(from.origin[1] + a.y * from.scale, to.origin[1] + b.y * to.scale, s);
+        const sp = tPrev === undefined ? 0 : at(tPrev);
+        const travel = Math.hypot(
+          (to.origin[0] + b.x * to.scale) - (from.origin[0] + a.x * from.scale),
+          (to.origin[1] + b.y * to.scale) - (from.origin[1] + a.y * from.scale),
+        );
+        const speed = Math.abs(s - sp) * travel;
         const size = lerp(from.fontSize * from.scale, to.fontSize * to.scale, s);
         const h = lerp(a.height * from.scale, b.height * to.scale, s);
         const mixed = from.color.map((v, k) => Math.round(lerp(v, to.color[k], s))) as RGB;
@@ -145,6 +158,7 @@ export function WordMorph({
               letterSpacing: `${lerp(from.letterSpacingEm, to.letterSpacingEm, s)}em`,
               color: `rgb(${c.map(Math.round).join(',')})`,
               opacity: 1 - dip * Math.sin(Math.PI * s),
+              filter: speedBlur(speed, 0.09, 2.4),
               ...style,
             }}
           >
