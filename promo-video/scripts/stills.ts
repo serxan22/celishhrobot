@@ -61,6 +61,9 @@ for (const frame of frames) {
   console.log(`frame ${frame} → ${path.relative(ROOT, file)} (${Date.now() - t0} ms)`);
 }
 
+// Each bundle carries a copy of public/ (captures included): never leave one behind.
+fs.rmSync(serveUrl, { recursive: true, force: true });
+
 if (sheet) {
   const cols = Number(arg('cols', '3'));
   const w = Number(arg('w', '640'));
