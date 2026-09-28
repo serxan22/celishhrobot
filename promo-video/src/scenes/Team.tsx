@@ -99,9 +99,15 @@ export function Team() {
 
   return (
     <Fill style={{ background: color.ink }}>
+      {/* The story page the Newsroom ended on, until the Team page has covered it. */}
+      {frame < 46 ? (
+        <SiteView scrollY={190} height={900}>
+          <Plate id="news-story" />
+        </SiteView>
+      ) : null}
       {/* The Team page, travelled from its masthead to the Board. */}
       {frame < SETTLE ? (
-        <Unmask start={-2} duration={46} direction="down">
+        <Unmask start={0} duration={46} direction="down">
           <Camera zoom={zoom}>
             <SiteView scrollY={scroll} height={900}>
               <Plate id="team-board" variant={frame >= DETACH ? 'noportraits' : 'plate'} />

@@ -137,7 +137,11 @@ export function Blog() {
       {morph}
 
       {/* Marginalia: two words in the law-report register, beside the reading. */}
-      {frame >= READ + 80 ? <Marginalia frame={frame - READ - 80} /> : null}
+      {frame >= READ + 80 ? (
+        <div style={{ position: 'absolute', inset: 0, opacity: 1 - progress(frame, SCENES.blog.duration - 16, SCENES.blog.duration - 2, ease.scenic) }}>
+          <Marginalia frame={frame - READ - 80} />
+        </div>
+      ) : null}
 
       {/* The byline, while the headline is held large. */}
       {frame >= ENL + 50 && frame < LAND + 20 ? (

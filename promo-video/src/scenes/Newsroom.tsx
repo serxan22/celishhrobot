@@ -1,6 +1,6 @@
 import { useCurrentFrame } from 'remotion';
 import { Fill } from '../components/primitives';
-import { Photo, Plate, SiteView, Unmask } from '../components/media';
+import { Footage, Photo, Plate, SiteView, Unmask } from '../components/media';
 import { CaptionBlock, Scrim } from '../components/Editorial';
 import { DirectionalBlur } from '../components/MotionBlur';
 import { toDesign } from '../components/SiteText';
@@ -70,9 +70,15 @@ export function Newsroom() {
 
   return (
     <Fill style={{ background: color.ink }}>
+      {/* The article the Blog scene ended on, until the masthead has covered it. */}
+      {frame < MAST + 46 ? (
+        <SiteView>
+          <Footage id="article-read" frame={SCENES.blog.duration - SCENES.blog.marks.readStart - 1} />
+        </SiteView>
+      ) : null}
       {/* The newsroom's masthead, uncovered, its title lifting as on the site. */}
       {frame < TIMELINE + 40 ? (
-        <Unmask start={MAST - 4} duration={48} direction="down">
+        <Unmask start={MAST} duration={46} direction="down">
           <Fill style={{ opacity: 1 - progress(frame, TIMELINE - 4, TIMELINE + 30, ease.scenic), transform: `translateY(${-60 * progress(frame, TIMELINE - 4, TIMELINE + 40, ease.scenic)}px)` }}>
             <SiteView>
               <Plate id="news-index" />
